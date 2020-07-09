@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <record id="default_gs1_backend" model="gs1.backend">
+        <field name="name">GS1</field>
+        <field name="tech_name">gs1_default</field>
+    </record>
+</odoo>
