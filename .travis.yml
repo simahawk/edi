@@ -34,7 +34,7 @@ jobs:
 
 env:
   global:
-    - VERSION="13.0" TESTS="0" LINT_CHECK="0" MAKEPOT="0"
+    - VERSION="13.0" TESTS="0" LINT_CHECK="0" MAKEPOT="0" MQT_DEP="PIP"
     - WKHTMLTOPDF_VERSION="0.12.5"
 
 install:
