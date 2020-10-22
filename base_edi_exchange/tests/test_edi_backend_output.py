@@ -8,12 +8,8 @@ from freezegun import freeze_time
 
 from .common import EDIBackendCommonTestCase
 
-MOD_PATH = "odoo.addons.storage_backend_sftp.components.sftp_adapter"
-PARAMIKO_PATH = MOD_PATH + ".paramiko"
 
-
-@freeze_time("2020-10-21 10:30:00")
-class TestEDIBackendOutput(EDIBackendCommonTestCase):
+class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -28,6 +24,11 @@ class TestEDIBackendOutput(EDIBackendCommonTestCase):
         cls.fakepath = "/tmp/{}".format(cls._filename(cls))
         with open(cls.fakepath, "w+b") as fakefile:
             fakefile.write(b"filecontent")
+
+        cls.fakepath_ack = "/tmp/{}.ack".format(cls._filename(cls))
+        with open(cls.fakepath_ack, "w+b") as fakefile:
+            fakefile.write(b"ACK filecontent")
+
         cls.fakepath_error = "/tmp/{}.error".format(cls._filename(cls))
         with open(cls.fakepath_error, "w+b") as fakefile:
             fakefile.write(b"ERROR XYZ: line 2 broken on bla bla")
@@ -36,13 +37,13 @@ class TestEDIBackendOutput(EDIBackendCommonTestCase):
         super().setUp()
         self._storage_backend_calls = []
 
-    def _filename(self, record=None):
+    def _filename(self, record=None, ack=False):
         record = record or self.record
-        return record.exchange_filename
+        return record.exchange_filename if not ack else record.ack_filename
 
-    def _file_fullpath(self, state, record=None):
+    def _file_fullpath(self, state, record=None, ack=False):
         record = record or self.record
-        fname = self._filename(record)
+        fname = self._filename(record, ack=ack)
         if state == "error-report":
             # Exception as we read from the same path but w/ error suffix
             state = "error"
@@ -71,13 +72,7 @@ class TestEDIBackendOutput(EDIBackendCommonTestCase):
         return mock.patch(mock_path + "._add_bin_data", self._mocked_backend_add)
 
     def _test_result(
-        self,
-        record,
-        expected_state,
-        expected_msg=None,
-        state_paths=None,
-        attachment=False,
-        error_msg=None,
+        self, record, expected_values, expected_messages=None, state_paths=None,
     ):
         state_paths = state_paths or ("done", "pending", "error")
         # Paths will be something like:
@@ -89,15 +84,15 @@ class TestEDIBackendOutput(EDIBackendCommonTestCase):
         for state in state_paths:
             path = self._file_fullpath(state, record=record)
             self.assertIn(path, self._storage_backend_calls)
-        self.assertEqual(record.edi_exchange_state, expected_state)
-        if error_msg:
-            self.assertEqual(record.exchange_error, error_msg)
-        if expected_msg:
-            self.assertEqual(len(record.record_id.message_ids), 1)
-            msg = record.record_id.message_ids[0]
-            self.assertIn(expected_msg, msg.body)
-            if attachment:
-                self.assertEqual(msg.attachment_ids[0].name, self._filename())
+        self.assertRecordValues(record, [expected_values])
+        if expected_messages:
+            self.assertEqual(len(record.record_id.message_ids), len(expected_messages))
+            for msg_rec, expected in zip(
+                record.record_id.message_ids, expected_messages
+            ):
+                self.assertIn(expected["message"], msg_rec.body)
+                self.assertIn("level-" + expected["level"], msg_rec.body)
+        # TODO: test content of file sent
 
     def _test_send(self, record, mocked_paths=None):
         with self._mock_storage_backend_add():
@@ -111,12 +106,19 @@ class TestEDIBackendOutput(EDIBackendCommonTestCase):
         with self._mock_storage_backend_get(mocked_paths):
             self.backend._cron_check_exchange_sync()
 
+
+@freeze_time("2020-10-21 10:30:00")
+class TestEDIBackendOutput(TestEDIBackendOutputBase):
     def test_export_file_sent(self):
         """Send, no errors."""
         mocked_paths = {self._file_fullpath("pending"): self.fakepath}
         self._test_send(self.record, mocked_paths=mocked_paths)
         self._test_result(
-            self.record, "output_sent", expected_msg=self.record._exchange_sent_msg(),
+            self.record,
+            {"edi_exchange_state": "output_sent"},
+            expected_messages=[
+                {"message": self.record._exchange_sent_msg(), "level": "info"}
+            ],
         )
 
     def test_export_file_already_done(self):
@@ -128,9 +130,51 @@ class TestEDIBackendOutput(EDIBackendCommonTestCase):
         # and only one call to ftp
         self._test_result(
             self.record,
-            "output_sent_and_processed",
-            expected_msg=self.record._exchange_processed_ok_msg(),
+            {"edi_exchange_state": "output_sent_and_processed", "ack_file": False},
             state_paths=("done",),
+            expected_messages=[
+                {"message": self.record._exchange_processed_ok_msg(), "level": "info"}
+            ],
+        )
+
+    def test_export_file_already_done_ack_needed_not_found(self):
+        self.record.type_id.ack_needed = True
+        mocked_paths = {
+            self._file_fullpath("done"): self.fakepath,
+        }
+        self._test_send(self.record, mocked_paths=mocked_paths)
+        # No ack file found, warning message is posted
+        self._test_result(
+            self.record,
+            {"edi_exchange_state": "output_sent_and_processed"},
+            state_paths=("done",),
+            expected_messages=[
+                {
+                    "message": self.record._exchange_processed_ack_needed_missing_msg(),
+                    "level": "warning",
+                },
+                {"message": self.record._exchange_processed_ok_msg(), "level": "info"},
+            ],
+        )
+
+    def test_export_file_already_done_ack_needed_found(self):
+        self.record.type_id.ack_needed = True
+        mocked_paths = {
+            self._file_fullpath("done"): self.fakepath,
+            self._file_fullpath("done", ack=True): self.fakepath_ack,
+        }
+        self._test_send(self.record, mocked_paths=mocked_paths)
+        # Found ack file, set on record
+        self._test_result(
+            self.record,
+            {
+                "edi_exchange_state": "output_sent_and_processed",
+                "ack_file": base64.b64encode(b"ACK filecontent"),
+            },
+            state_paths=("done",),
+            expected_messages=[
+                {"message": self.record._exchange_processed_ok_msg(), "level": "info"}
+            ],
         )
 
     def test_export_file_sent_and_error(self):
@@ -145,10 +189,14 @@ class TestEDIBackendOutput(EDIBackendCommonTestCase):
         # we should get a call for: done, error and then the read of the report.
         self._test_result(
             self.record,
-            "output_sent_and_error",
-            expected_msg=self.record._exchange_processed_ko_msg(),
+            {
+                "edi_exchange_state": "output_sent_and_error",
+                "exchange_error": "ERROR XYZ: line 2 broken on bla bla",
+            },
             state_paths=("done", "error", "error-report"),
-            error_msg="ERROR XYZ: line 2 broken on bla bla",
+            expected_messages=[
+                {"message": self.record._exchange_processed_ko_msg(), "level": "error"}
+            ],
         )
 
     def test_export_file_cron(self):
@@ -181,20 +229,28 @@ class TestEDIBackendOutput(EDIBackendCommonTestCase):
         self._test_send_cron(mocked_paths)
         self._test_result(
             rec1,
-            "output_sent_and_processed",
-            expected_msg=rec1._exchange_processed_ok_msg(),
+            {"edi_exchange_state": "output_sent_and_processed"},
             state_paths=("done",),
+            expected_messages=[
+                {"message": rec1._exchange_processed_ok_msg(), "level": "info"}
+            ],
         )
         self._test_result(
             rec2,
-            "output_sent_and_error",
-            expected_msg=rec2._exchange_processed_ko_msg(),
+            {
+                "edi_exchange_state": "output_sent_and_error",
+                "exchange_error": "ERROR XYZ: line 2 broken on bla bla",
+            },
             state_paths=("done", "error", "error-report"),
-            error_msg="ERROR XYZ: line 2 broken on bla bla",
+            expected_messages=[
+                {"message": rec2._exchange_processed_ko_msg(), "level": "error"}
+            ],
         )
         self._test_result(
             rec3,
-            "output_sent_and_processed",
-            expected_msg=rec3._exchange_processed_ok_msg(),
+            {"edi_exchange_state": "output_sent_and_processed"},
             state_paths=("done",),
+            expected_messages=[
+                {"message": rec3._exchange_processed_ok_msg(), "level": "info"}
+            ],
         )

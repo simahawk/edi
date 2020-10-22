@@ -8,7 +8,6 @@
                 <field name="type_id" />
                 <field name="res_id" />
                 <field name="exchanged_on" />
-                <field name="ack_received" />
                 <field name="ack_received_on" />
                 <field name="record_id" />
                 <field name="edi_exchange_state" />
@@ -31,7 +30,6 @@
                             <field name="type_id" />
                             <field name="res_id" />
                             <field name="exchanged_on" />
-                            <field name="ack_received" />
                             <field name="ack_received_on" />
                             <field name="record_id" />
                             <field name="edi_exchange_state" />
@@ -48,7 +46,6 @@
                 <field name="type_id" />
                 <field name="res_id" />
                 <field name="exchanged_on" />
-                <field name="ack_received" />
                 <field name="ack_received_on" />
                 <field name="edi_exchange_state" />
                 <group expand="0" string="Group By">

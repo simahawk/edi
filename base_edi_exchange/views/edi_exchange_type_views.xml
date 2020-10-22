@@ -35,8 +35,8 @@
                             <field name="ack_needed" />
                             <field name="ack_name" />
                             <field name="ack_code" />
-                            <field name="exchange_ack_filename_pattern" />
-                            <field name="exchange_ack_file_ext" />
+                            <field name="ack_filename_pattern" />
+                            <field name="ack_file_ext" />
                         </group>
                     </group>
                 </sheet>

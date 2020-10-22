@@ -48,11 +48,22 @@ class EDIExchangeMixin(models.AbstractModel):
         compute="_compute_exchange_filename", readonly=False, store=True
     )
     exchanged_on = fields.Datetime(
-        string="Exchanged on", readonly=True, help="Sent or received on this date."
+        string="Exchanged on",
+        help="Sent or received on this date.",
+        compute="_compute_exchanged_on",
+        store=True,
     )
-    ack_received = fields.Boolean(default=False)
-    ack_received_on = fields.Datetime(string="Received on", readonly=True)
     ack_file = fields.Binary(attachment=True)
+    ack_filename = fields.Char(
+        compute="_compute_exchange_filename", readonly=False, store=True
+    )
+    ack_received_on = fields.Datetime(
+        string="ACK received on",
+        readonly=True,
+        compute="_compute_ack_received_on",
+        store=True,
+    )
+    # TODO: add model for custom state eg: GOOD_STORED?
     edi_exchange_state = fields.Selection(
         string="Exchange state",
         readonly=True,
@@ -60,16 +71,16 @@ class EDIExchangeMixin(models.AbstractModel):
         selection=[
             ("new", "New"),
             # output exchange states
-            ("output_not_sent", "Not sent"),
+            ("output_pending", "Waiting to be sent"),
             ("output_error_on_send", "error on send"),
             ("output_sent", "Sent"),
             ("output_sent_and_processed", "Sent and processed"),
             ("output_sent_and_error", "Sent and error"),
             # input exchange states
+            ("input_pending", "Waiting to be received"),
             ("input_received", "Received"),
-            ("input_read_error", "error on read"),
             ("input_processed", "Processed"),
-            ("input_processed_error", "error on process"),
+            ("input_processed_error", "Error on process"),
         ],
     )
     exchange_error = fields.Text(string="Exchange error", readonly=True)
@@ -89,11 +100,25 @@ class EDIExchangeMixin(models.AbstractModel):
         models = self.env["ir.model"].sudo().search([])
         return [(model.model, model.name) for model in models]
 
-    @api.depends("type_id", "model")
+    @api.depends("model", "type_id", "type_id.ack_needed")
     def _compute_exchange_filename(self):
         for rec in self:
             if not rec.exchange_filename:
                 rec.exchange_filename = rec.type_id._make_exchange_filename(rec)
+            if rec.type_id.ack_needed and not rec.ack_filename:
+                rec.ack_filename = rec.type_id._make_exchange_filename(rec, ack=True)
+
+    @api.depends("edi_exchange_state")
+    def _compute_exchanged_on(self):
+        for rec in self:
+            if rec.edi_exchange_state in ("input_received", "output_sent"):
+                rec.exchanged_on = fields.Datetime.now()
+
+    @api.depends("ack_file")
+    def _compute_ack_received_on(self):
+        for rec in self:
+            if rec.ack_file:
+                rec.ack_received_on = fields.Datetime.now()
 
     @api.constrains("edi_exchange_state")
     def _constrain_edi_exchange_state(self):
@@ -125,6 +150,11 @@ class EDIExchangeMixin(models.AbstractModel):
     def _exchange_send_error_msg(self):
         return _("An error happened while sending. Please check exchange record info.")
 
-    def action_exchange(self):
+    def _exchange_processed_ack_needed_missing_msg(self):
+        return _("ACK file is required for this exchange but not found.")
+
+    def action_exchange_send(self):
         self.ensure_one()
-        return self.backend_id._exchange_send(self)
+        if not self.direction == "output":
+            raise exceptions.UserError(_("An output record is required for sending!"))
+        return self.backend_id.with_delay().exchange_send(self)

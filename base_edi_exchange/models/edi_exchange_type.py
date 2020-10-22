@@ -28,22 +28,19 @@ class EDIExchangeType(models.Model):
     exchange_filename_pattern = fields.Char(default="{record_name}-{type.code}-{dt}")
     exchange_file_ext = fields.Char(required=True)
 
-    # TODO: handle ack files
     ack_needed = fields.Boolean()
     ack_name = fields.Char()
     ack_code = fields.Char()
-    exchange_ack_filename_pattern = fields.Char(
-        default="{record_name}-{type.code}-{dt}"
-    )
-    exchange_ack_file_ext = fields.Char(default="")
+    ack_filename_pattern = fields.Char(default="{type.exchange_filename_pattern}.ack")
+    ack_file_ext = fields.Char(default="")
 
     def _make_exchange_filename(self, record, ack=False):
         """Generate filename."""
         pattern = self.exchange_filename_pattern
         ext = self.exchange_file_ext
         if ack:
-            pattern = self.exchange_ack_filename_pattern
-            ext = self.exchange_ack_file_ext
+            pattern = self.ack_filename_pattern
+            ext = self.ack_file_ext
         pattern = pattern + ".{ext}"
         dt = slugify(fields.Datetime.to_string(fields.Datetime.now()))
         record_name = self._get_record_name(record)

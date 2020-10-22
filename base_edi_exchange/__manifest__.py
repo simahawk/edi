@@ -9,7 +9,13 @@
     "development_status": "Alpha",
     "license": "AGPL-3",
     "author": "ACSONE,Odoo Community Association (OCA)",
-    "depends": ["base_edi", "storage_backend", "component", "queue_job"],
+    "depends": [
+        "base_edi",
+        "storage_backend",
+        "component",
+        "component_event",
+        "queue_job",
+    ],
     "data": [
         "security/ir_model_access.xml",
         "views/edi_backend_views.xml",
