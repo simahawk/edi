@@ -16,6 +16,4 @@ class EDIBackend(models.Model):
         return None
 
     def _get_template(self, record):
-        return self.env["edi.exchange.template.output"].search(
-            [("type_id", "=", record.type_id.id)], limit=1
-        )
+        return self.env["edi.exchange.template.output"].get_template_for_record(record)

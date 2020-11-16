@@ -20,26 +20,39 @@ class EDIExchangeOutputTemplate(models.Model):
         delegate=True,
         ondelete="cascade",
     )
+    # key = fields.Char(related="template_id.key")
     type_id = fields.Many2one(
         string="EDI Exchange type",
         comodel_name="edi.exchange.type",
-        required=True,
         ondelete="cascade",
         auto_join=True,
     )
     backend_id = fields.Many2one(
-        comodel_name="edi.backend", related="type_id.backend_id",
+        comodel_name="edi.backend",
+        ondelete="cascade",
+        # TODO: default to type_id if given, validate otherwise
     )
 
-    def generate_output(self, record):
+    def generate_output(self, record, **kw):
         tmpl = self.template_id
-        values = self._get_render_values(record)
+        values = self._get_render_values(record, **kw)
         return tmpl.render(values)
 
-    def _get_render_values(self, record):
+    def _get_render_values(self, record, **kw):
         values = {
             "exchange_record": record,
             "record": record.record_id,
             "backend": record.backend_id,
+            "template": self,
         }
+        values.update(kw)
         return values
+
+    def get_template_for_record(self, record, key=None):
+        if key:
+            # by key
+            domain = [("key", "=", key)]
+        else:
+            # by type
+            domain = [("type_id", "=", record.type_id.id)]
+        return self.search(domain, limit=1)

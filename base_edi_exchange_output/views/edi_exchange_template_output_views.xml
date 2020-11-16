@@ -6,7 +6,8 @@
             <tree string="EDI Exchange Template Output">
                 <field name="backend_id" />
                 <field name="name" />
-                <field name="type_id" />
+                <field name="template_id" />
+                <field name="key" />
             </tree>
         </field>
     </record>
@@ -26,6 +27,7 @@
                             <field name="type_id" />
                             <field name="backend_id" />
                             <field name="template_id" />
+                            <field name="key" />
                         </group>
                     </group>
                 </sheet>
@@ -39,6 +41,7 @@
                 <field name="name" />
                 <field name="type_id" />
                 <field name="backend_id" />
+                <field name="key" />
                 <group expand="0" string="Group By">
                     <filter
                         name="group_by_backend_id"
