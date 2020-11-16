@@ -17,10 +17,12 @@ class EDIExchangeOutputTemplate(models.Model):
         string="Qweb Template",
         comodel_name="ir.ui.view",
         required=True,
-        delegate=True,
-        ondelete="cascade",
+        ondelete="restrict",
     )
-    # key = fields.Char(related="template_id.key")
+    template_arch = fields.Text(
+        string="QWeb arch", related="template_id.arch_db", readonly=False,
+    )
+    template_key = fields.Char(related="template_id.key")
     type_id = fields.Many2one(
         string="EDI Exchange type",
         comodel_name="edi.exchange.type",
@@ -55,4 +57,6 @@ class EDIExchangeOutputTemplate(models.Model):
         else:
             # by type
             domain = [("type_id", "=", record.type_id.id)]
+        # TODO: if not type is given filter by backend
+        # domain.append(("backend_id", "=", record.backend_id.id))
         return self.search(domain, limit=1)

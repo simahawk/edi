@@ -7,7 +7,7 @@
                 <field name="backend_id" />
                 <field name="name" />
                 <field name="template_id" />
-                <field name="key" />
+                <field name="template_key" />
             </tree>
         </field>
     </record>
@@ -26,8 +26,9 @@
                         <group name="main">
                             <field name="type_id" />
                             <field name="backend_id" />
+                            <field name="template_key" />
                             <field name="template_id" />
-                            <field name="key" />
+                            <field name="template_arch" />
                         </group>
                     </group>
                 </sheet>
@@ -41,7 +42,7 @@
                 <field name="name" />
                 <field name="type_id" />
                 <field name="backend_id" />
-                <field name="key" />
+                <field name="template_key" />
                 <group expand="0" string="Group By">
                     <filter
                         name="group_by_backend_id"
