@@ -115,7 +115,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         self._test_send(self.record, mocked_paths=mocked_paths)
         self._test_result(
             self.record,
-            {"edi_exchange_state": "output_sent"},
+            {"exchange_state": "output_sent"},
             expected_messages=[
                 {"message": self.record._exchange_sent_msg(), "level": "info"}
             ],
@@ -130,7 +130,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         # and only one call to ftp
         self._test_result(
             self.record,
-            {"edi_exchange_state": "output_sent_and_processed", "ack_file": False},
+            {"exchange_state": "output_sent_and_processed", "ack_file": False},
             state_paths=("done",),
             expected_messages=[
                 {"message": self.record._exchange_processed_ok_msg(), "level": "info"}
@@ -146,7 +146,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         # No ack file found, warning message is posted
         self._test_result(
             self.record,
-            {"edi_exchange_state": "output_sent_and_processed"},
+            {"exchange_state": "output_sent_and_processed"},
             state_paths=("done",),
             expected_messages=[
                 {
@@ -168,7 +168,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         self._test_result(
             self.record,
             {
-                "edi_exchange_state": "output_sent_and_processed",
+                "exchange_state": "output_sent_and_processed",
                 "ack_file": base64.b64encode(b"ACK filecontent"),
             },
             state_paths=("done",),
@@ -179,7 +179,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
 
     def test_export_file_sent_and_error(self):
         """Already sent, error process."""
-        self.record.edi_exchange_state = "output_sent"
+        self.record.exchange_state = "output_sent"
         mocked_paths = {
             self._file_fullpath("error"): self.fakepath,
             self._file_fullpath("error-report"): self.fakepath_error,
@@ -190,7 +190,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         self._test_result(
             self.record,
             {
-                "edi_exchange_state": "output_sent_and_error",
+                "exchange_state": "output_sent_and_error",
                 "exchange_error": "ERROR XYZ: line 2 broken on bla bla",
             },
             state_paths=("done", "error", "error-report"),
@@ -201,7 +201,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
 
     def test_export_file_cron(self):
         """Already sent, update the state via cron."""
-        self.record.edi_exchange_state = "output_sent"
+        self.record.exchange_state = "output_sent"
         rec1 = self.record
         partner2 = self.env.ref("base.res_partner_2")
         partner3 = self.env.ref("base.res_partner_3")
@@ -217,7 +217,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
                 "model": partner3._name,
                 "res_id": partner3.id,
                 "exchange_filename": "rec3.csv",
-                "edi_exchange_state": "output_sent_and_error",
+                "exchange_state": "output_sent_and_error",
             }
         )
         mocked_paths = {
@@ -229,7 +229,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         self._test_send_cron(mocked_paths)
         self._test_result(
             rec1,
-            {"edi_exchange_state": "output_sent_and_processed"},
+            {"exchange_state": "output_sent_and_processed"},
             state_paths=("done",),
             expected_messages=[
                 {"message": rec1._exchange_processed_ok_msg(), "level": "info"}
@@ -238,7 +238,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         self._test_result(
             rec2,
             {
-                "edi_exchange_state": "output_sent_and_error",
+                "exchange_state": "output_sent_and_error",
                 "exchange_error": "ERROR XYZ: line 2 broken on bla bla",
             },
             state_paths=("done", "error", "error-report"),
@@ -248,7 +248,7 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         )
         self._test_result(
             rec3,
-            {"edi_exchange_state": "output_sent_and_processed"},
+            {"exchange_state": "output_sent_and_processed"},
             state_paths=("done",),
             expected_messages=[
                 {"message": rec3._exchange_processed_ok_msg(), "level": "info"}

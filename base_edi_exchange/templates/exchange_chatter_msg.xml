@@ -19,7 +19,7 @@
             <br />
             <span class="exchange-state">
                 <strong>State:</strong>
-                <span t-field="exchange_record.edi_exchange_state" />
+                <span t-field="exchange_record.exchange_state" />
             </span>
             <br />
             <span t-attf-class="exchange-message #{message_color_klass.get(level)}">

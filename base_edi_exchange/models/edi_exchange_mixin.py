@@ -64,7 +64,7 @@ class EDIExchangeMixin(models.AbstractModel):
         store=True,
     )
     # TODO: add model for custom state eg: GOOD_STORED?
-    edi_exchange_state = fields.Selection(
+    exchange_state = fields.Selection(
         string="Exchange state",
         readonly=True,
         default="new",
@@ -108,10 +108,10 @@ class EDIExchangeMixin(models.AbstractModel):
             if rec.type_id.ack_needed and not rec.ack_filename:
                 rec.ack_filename = rec.type_id._make_exchange_filename(rec, ack=True)
 
-    @api.depends("edi_exchange_state")
+    @api.depends("exchange_state")
     def _compute_exchanged_on(self):
         for rec in self:
-            if rec.edi_exchange_state in ("input_received", "output_sent"):
+            if rec.exchange_state in ("input_received", "output_sent"):
                 rec.exchanged_on = fields.Datetime.now()
 
     @api.depends("ack_file")
@@ -120,12 +120,12 @@ class EDIExchangeMixin(models.AbstractModel):
             if rec.ack_file:
                 rec.ack_received_on = fields.Datetime.now()
 
-    @api.constrains("edi_exchange_state")
-    def _constrain_edi_exchange_state(self):
+    @api.constrains("exchange_state")
+    def _constrain_exchange_state(self):
         for rec in self:
-            if rec.edi_exchange_state == "new":
+            if rec.exchange_state == "new":
                 continue
-            if not rec.edi_exchange_state.startswith(rec.direction):
+            if not rec.exchange_state.startswith(rec.direction):
                 raise exceptions.ValidationError(
                     _("Exchange state must respect direction!")
                 )

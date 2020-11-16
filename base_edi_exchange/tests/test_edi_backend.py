@@ -37,7 +37,7 @@ class EDIBackendTestCase(EDIBackendCommonTestCase):
         expected = {
             "type_id": self.exchange_type_in.id,
             "record_id": self.partner,
-            "edi_exchange_state": "new",
+            "exchange_state": "new",
             "exchange_filename": "EDI_EXC_TEST-test_csv_input-2020-10-21-10-00-00.csv",
         }
         self.assertRecordValues(record, [expected])

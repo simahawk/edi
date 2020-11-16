@@ -144,8 +144,8 @@ class EDIBackend(models.Model):
         """
         if self._get_remote_file(record, "done"):
             _logger.info("%s done for: %s", (record.model, record.name))
-            if not record.edi_exchange_state == "output_sent_and_processed":
-                record.edi_exchange_state = "output_sent_and_processed"
+            if not record.exchange_state == "output_sent_and_processed":
+                record.exchange_state = "output_sent_and_processed"
                 self._exchange_notify_record(
                     record, record._exchange_processed_ok_msg()
                 )
@@ -160,10 +160,10 @@ class EDIBackend(models.Model):
             # Assume a text file will be placed there w/ the same name and error suffix
             err_filename = record.exchange_filename + ".error"
             error_report = self._get_remote_file(record, "error", filename=err_filename)
-            if record.edi_exchange_state == "output_sent":
+            if record.exchange_state == "output_sent":
                 record.update(
                     {
-                        "edi_exchange_state": "output_sent_and_error",
+                        "exchange_state": "output_sent_and_error",
                         "exchange_error": pycompat.to_text(error_report),
                     }
                 )
@@ -192,7 +192,7 @@ class EDIBackend(models.Model):
         states = ("output_sent", "output_sent_and_error")
         return [
             ("type_id.direction", "=", "output"),
-            ("edi_exchange_state", "in", states),
+            ("exchange_state", "in", states),
         ]
 
     def _cron_check_output_exchange_sync(self):
@@ -249,7 +249,7 @@ class EDIBackend(models.Model):
             state = "output_sent"
             res = True
         finally:
-            record.edi_exchange_state = state
+            record.exchange_state = state
             record.exchange_error = error
             if message:
                 backend._exchange_notify_record(record, message)
@@ -278,7 +278,7 @@ class EDIBackend(models.Model):
         states = ("input_pending", "input_processed_error")
         return [
             ("type_id.direction", "=", "input"),
-            ("edi_exchange_state", "in", states),
+            ("exchange_state", "in", states),
         ]
 
     def _cron_check_input_exchange_sync(self):
@@ -306,8 +306,8 @@ class EDIBackend(models.Model):
         """
         if self._get_remote_file(record, "pending"):
             _logger.info("%s done for: %s", (record.model, record.name))
-            if not record.edi_exchange_state == "input_received":
-                record.edi_exchange_state = "input_received"
+            if not record.exchange_state == "input_received":
+                record.exchange_state = "input_received"
                 self._exchange_notify_record(
                     record, record._exchange_processed_ok_msg()
                 )
@@ -317,8 +317,8 @@ class EDIBackend(models.Model):
         return True
 
     def _trigger_edi_event_make_name(self, record, suffix=None):
-        return "on_edi_{type.code}_{record.state}{suffix}".format(
-            record=record, type=record.type_id, suffix="_" + suffix if suffix else ""
+        return "on_edi_{type.code}_{record.exchange_state}{suffix}".format(
+            record=record, type=record.type_id, suffix=("_" + suffix) if suffix else ""
         )
 
     def _trigger_edi_event(self, record, name=None, suffix=None):
