@@ -37,6 +37,12 @@ class EDIBackend(models.Model):
     _inherit = ["collection.base"]
 
     name = fields.Char(required=True)
+    backend_type_id = fields.Many2one(
+        string="EDI Backend type",
+        comodel_name="edi.backend.type",
+        required=True,
+        ondelete="restrict",
+    )
     storage_id = fields.Many2one(
         string="Storage backend",
         comodel_name="storage.backend",
@@ -44,6 +50,8 @@ class EDIBackend(models.Model):
         required=True,
         ondelete="restrict",
     )
+    # TODO: these paths should probably be by type instead
+    # Here we can maybe set a common root folder for this exchange.
     input_dir_pending = fields.Char(
         "Input pending directory", help="Path to folder for pending operations"
     )
