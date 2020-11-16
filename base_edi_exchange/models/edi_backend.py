@@ -96,12 +96,17 @@ class EDIBackend(models.Model):
         :return: edi.exchange.record record
         """
         self.ensure_one()
+        _values = self._create_record_prepare_values(type_code, values)
+        return self.exchange_record_model.create(_values)
+
+    def _create_record_prepare_values(self, type_code, values):
+        res = values.copy()  # do not pollute original dict
         export_type = self.env["edi.exchange.type"].search(
             [("code", "=", type_code), ("backend_id", "=", self.id)], limit=1
         )
         export_type.ensure_one()
-        values["type_id"] = export_type.id
-        return self.exchange_record_model.create(values)
+        res["type_id"] = export_type.id
+        return res
 
     def _get_component(self, work_ctx=None, **kw):
         work_ctx = work_ctx or {}
