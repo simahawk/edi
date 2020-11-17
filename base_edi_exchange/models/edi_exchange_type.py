@@ -34,6 +34,8 @@ class EDIExchangeType(models.Model):
     ack_filename_pattern = fields.Char(default="{type.exchange_filename_pattern}.ack")
     ack_file_ext = fields.Char(default="")
 
+    # TODO: for xml templates add XSD file field for validation
+
     def _make_exchange_filename(self, record, ack=False):
         """Generate filename."""
         pattern = self.exchange_filename_pattern
