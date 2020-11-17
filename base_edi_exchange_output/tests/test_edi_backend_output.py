@@ -35,7 +35,12 @@ class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
             }
         )
         cls.tmpl_out1 = model.create(
-            {"name": "Out 1", "type_id": cls.type_out1.id, "template_id": qweb_tmpl.id}
+            {
+                "code": "out1",
+                "name": "Out 1",
+                "type_id": cls.type_out1.id,
+                "template_id": qweb_tmpl.id,
+            }
         )
         vals = {
             "model": cls.partner._name,
@@ -60,6 +65,7 @@ class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
                 <t t-name="base_edi_exchange.test_output2">
                     <Record t-att-ref="record.ref">
                         <Name t-esc="record.name" />
+                        <Custom t-att-bit="custom_bit" t-esc="baz"/>
                     </Record>
                 </t>
             </t>
@@ -67,7 +73,17 @@ class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
             }
         )
         cls.tmpl_out2 = model.create(
-            {"name": "Out 2", "type_id": cls.type_out2.id, "template_id": qweb_tmpl.id}
+            {
+                "code": "out2",
+                "name": "Out 2",
+                "type_id": cls.type_out2.id,
+                "template_id": qweb_tmpl.id,
+                "code_snippet": """
+foo = "custom_var"
+baz = 2
+result = {"custom_bit": foo, "baz": baz}
+                """,
+            }
         )
         vals = {
             "model": cls.partner._name,
@@ -77,6 +93,7 @@ class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
         cls.record2 = cls.backend.create_record("test_type_out2", vals)
 
 
+# TODO: add more unit tests
 class TestEDIBackendOutput(TestEDIBackendOutputBase):
     def test_get_template(self):
         self.assertEqual(self.backend._get_template(self.record1), self.tmpl_out1)
@@ -92,4 +109,8 @@ class TestEDIBackendOutput(TestEDIBackendOutputBase):
         doc = etree.fromstring(output)
         self.assertEqual(doc.tag, "Record")
         self.assertEqual(doc.attrib, {"ref": self.partner.ref})
+        self.assertEqual(doc.getchildren()[0].tag, "Name")
         self.assertEqual(doc.getchildren()[0].text, self.partner.name)
+        self.assertEqual(doc.getchildren()[1].tag, "Custom")
+        self.assertEqual(doc.getchildren()[1].text, "2")
+        self.assertEqual(doc.getchildren()[1].attrib, {"bit": "custom_var"})
