@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record
+        id="edi_exchange_template_inbound_instruction"
+        model="edi.exchange.template.output"
+    >
+        <field name="name">EDI Exchange - GS1 Inbound Instruction</field>
+        <field name="type_id" ref="edi_exchange_type_inbound_instruction" />
+        <field name="template_id" ref="edi_exchange_inbound_instruction" />
+        <field name="code_snippet">
+sender = backend.lsc_partner_id
+receiver = backend.lsp_partner_id
+        </field>
+    </record>
+</odoo>

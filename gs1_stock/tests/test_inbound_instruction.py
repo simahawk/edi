@@ -2,6 +2,7 @@
 # @author: Simone Orsi <simahawk@gmail.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
+import base64
 from uuid import uuid4
 
 from freezegun import freeze_time
@@ -70,25 +71,10 @@ class InboundInstructionTestCaseBase(BaseXMLTestCase, DeliveryMixin):
             cls._create_purchase_order_line(cls.purchase, **line)
 
         cls.purchase.button_approve()
-        cls.delivery_order = cls.purchase.picking_ids[0]
+        cls.delivery = cls.purchase.picking_ids[0]
         cls.carrier = cls.env.ref("base.res_partner_4")
         cls.carrier.gln_code = "44".zfill(13)
         cls.carrier.ref = "CARRIER#1"
-
-    def _get_handler(
-        self, usage="gs1.warehousingInboundInstructionMessage", work_ctx=None, **kw
-    ):
-        default_work_ctx = dict(
-            record=self.delivery_order,
-            sender=self.lsc_partner,
-            receiver=self.lsp_partner,
-            shipper=self.carrier,
-            instance_identifier="WH-IN-TEST-01",
-            ls_buyer=self.lsc_partner,
-            ls_seller=self.lsp_partner,
-        )
-        default_work_ctx.update(work_ctx or {})
-        return self.backend._get_component(work_ctx=default_work_ctx, usage=usage, **kw)
 
 
 class InboundInstructionTestCase(InboundInstructionTestCaseBase):
@@ -97,124 +83,28 @@ class InboundInstructionTestCase(InboundInstructionTestCaseBase):
         super().setUpClass()
         cls._setup_order()
 
-    @freeze_time("2020-07-09 10:30:00")
-    def test_business_header_data(self):
-        handler = self._get_handler()
-        result = handler._business_header()
-        expected_doc_id = {
-            "@ns": "sh",
-            "Standard": {"@ns": "sh", "@value": "GS1"},
-            "TypeVersion": {"@ns": "sh", "@value": "3.4"},
-            "InstanceIdentifier": {"@ns": "sh", "@value": "WH-IN-TEST-01"},
-            "Type": {"@ns": "sh", "@value": ""},
-            "MultipleType": {"@ns": "sh", "@value": "false"},
-            "CreationDateAndTime": {"@ns": "sh", "@value": "2020-07-09T10:30:00"},
+    def test_get_template(self):
+        exc_type = self.env.ref("gs1_stock.edi_exchange_type_inbound_instruction")
+        exc_tmpl = self.env.ref("gs1_stock.edi_exchange_template_inbound_instruction")
+        vals = {
+            "model": self.delivery._name,
+            "res_id": self.delivery.id,
+            "type_id": exc_type.id,
         }
+        record = self.backend.create_record(exc_type.code, vals)
+        template = self.backend._get_template(record)
+        self.assertEqual(template, exc_tmpl)
         self.assertEqual(
-            result["StandardBusinessDocumentHeader"]["DocumentIdentification"],
-            expected_doc_id,
+            template.template_id.key, "gs1_stock.edi_exchange_inbound_instruction"
         )
 
     @freeze_time("2020-07-09 10:30:00")
-    def test_instruction_data(self):
-        handler = self._get_handler()
-        result = handler._inbound_instruction()
-        expected = {
-            "warehousingInboundInstruction": {
-                "creationDateTime": "2020-07-09T10:30:00",
-                "documentStatusCode": "ORIGINAL",
-                "documentActionCode": "ADD",
-                "warehousingInboundInstructionIdentification": {
-                    "entityIdentification": self.delivery_order.name,
-                },
-                "logisticServicesBuyer": {"gln": "0000000000002"},
-                "logisticServicesSeller": {"gln": "0000000000001"},
-                "warehousingInboundInstructionShipment": [
-                    {
-                        "shipmentIdentification": {
-                            "additionalShipmentIdentification": {
-                                "@attrs": {
-                                    # fmt: off
-                                    "additionalShipmentIdentificationTypeCode":
-                                        "GOODS_RECEIVER_ASSIGNED"
-                                    # fmt: on
-                                },
-                                "@value": self.delivery_order.name,
-                            }
-                        }
-                    },
-                    {
-                        "shipper": {
-                            "gln": "0000000000044",
-                            "additionalPartyIdentification": {
-                                "@attrs": {
-                                    # fmt: off
-                                    "additionalPartyIdentificationTypeCode":
-                                        "BUYER_ASSIGNED_IDENTIFIER_FOR_A_PARTY"
-                                    # fmt: on
-                                },
-                                "@value": "CARRIER#1",
-                            },
-                        }
-                    },
-                    {"receiver": {"gln": "0000000000001"}},
-                    {
-                        "packageTotal": {
-                            "packageTypeCode": "AF",
-                            "totalPackageQuantity": "2",
-                            "totalGrossWeight": {
-                                "@value": self.delivery_order.weight,
-                                "@attrs": {"measurementUnitCode": "KGM"},
-                            },
-                        }
-                    },
-                    {"warehousingReceiptTypeCode": "REGULAR_RECEIPT"},
-                    {
-                        "plannedReceipt": {
-                            "logisticEventDateTime": {"date": "2020-07-12"}
-                        }
-                    },
-                    {
-                        "warehousingInboundInstructionShipmentItem": {
-                            "lineItemNumber": 1,
-                            "transactionalTradeItem": {"gtin": "1" * 14},
-                            "plannedReceiptQuantity": {
-                                "@value": 300.0,
-                                "@attrs": {"measurementUnitCode": "KGM"},
-                            },
-                        }
-                    },
-                    {
-                        "warehousingInboundInstructionShipmentItem": {
-                            "lineItemNumber": 2,
-                            "transactionalTradeItem": {"gtin": "2" * 14},
-                            "plannedReceiptQuantity": {
-                                "@value": 200.0,
-                                "@attrs": {"measurementUnitCode": "KGM"},
-                            },
-                        }
-                    },
-                    {
-                        "warehousingInboundInstructionShipmentItem": {
-                            "lineItemNumber": 3,
-                            "transactionalTradeItem": {"gtin": "3" * 14},
-                            "plannedReceiptQuantity": {
-                                "@value": 100.0,
-                                "@attrs": {"measurementUnitCode": "KGM"},
-                            },
-                        }
-                    },
-                ],
-            }
-        }
-        self.assertEqual(result, expected)
-
-    @freeze_time("2020-07-09 10:30:00")
-    def test_xml(self):
-        handler = self._get_handler()
-        result = handler.generate_xml()
-        self._dev_write_example_file(__file__, "inbound_instruction.xml", result)
-        self.assertFalse(handler.validate_schema(result, raise_on_fail=True))
-        self.assertXmlDocument(result)
-        # self.assertXpathsExist(root, paths)
-        # self.assertXmlEquivalentOutputs(self.flatten(result), self.flatten(expected))
+    def test_business_header_data(self):
+        record = self.delivery.with_context(
+            edi_exchange_send=False
+        ).action_send_wh_inbound_instruction()
+        file_content = base64.b64decode(record.exchange_file).decode().strip()
+        # FIXME: do proper validation
+        self.assertTrue(
+            file_content.startswith("<warehousing_inbound_instruction"), file_content
+        )
