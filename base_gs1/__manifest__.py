@@ -10,8 +10,18 @@
     "development_status": "Alpha",
     "license": "AGPL-3",
     "author": "ACSONE,Odoo Community Association (OCA)",
-    "depends": ["component", "storage_backend", "base_jsonify"],
+    # TODO: Fix dependencies remove all components old stuff
+    "depends": [
+        "component",
+        "storage_backend",
+        "base_jsonify",
+        "base_edi_exchange_output",
+    ],
     "external_dependencies": {"python": ["xmlschema"]},
-    "data": ["security/gs1_backend_acl.xml", "data/gs1_backend_data.xml"],
-    "demo": [],
+    "data": [
+        "security/gs1_backend_acl.xml",
+        "data/gs1_backend_data.xml",
+        "data/business_header_qweb_template.xml",
+        "data/business_header_output_template.xml",
+    ],
 }

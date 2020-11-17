@@ -26,6 +26,7 @@ class GS1InputMixin(AbstractComponent):
         # etree.fromstring(file_content.encode())
         xsd_full_path = self._get_xsd_schema()
         schema = xmlschema.XMLSchema(xsd_full_path)
+        # TODO: use tools.DotDict
         return schema.to_dict(file_obj, **kw)
 
     def parse_xml(self, file_content, **kw):

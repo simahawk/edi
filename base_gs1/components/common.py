@@ -18,7 +18,7 @@ class GS1Mixin(AbstractComponent):
     """Abstract component mixin to generate GS1 compliant XML files."""
 
     _name = "gs1.mixin"
-    _collection = "gs1.backend"
+    # _collection = "gs1.backend"
     # Enable validation of work context attributes
     _work_context_validate_attrs = []
     # Module containing XSD schema for validation

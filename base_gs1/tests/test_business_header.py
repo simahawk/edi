@@ -4,86 +4,60 @@
 
 from freezegun import freeze_time
 
-from .common import BaseXMLTestCase
+from .common import BaseTestCase
+
+BH_NS = "http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader"
 
 
-class BusinessHeaderTestCase(BaseXMLTestCase):
-    def _get_handler(self, usage="gs1.StandardBusinessDocumentHeader", **kw):
-        # FIXME: use a real record
-        record = object()
-        return self.backend._get_component(
-            work_ctx=dict(
-                record=record,
-                sender=self.lsc_partner,
-                receiver=self.lsp_partner,
-                instance_identifier="TEST-DOC-XYZ",
-            ),
-            usage=usage,
-            **kw
-        )
+class BusinessHeaderTestCase(BaseTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._setup_records()
 
-    def test_header_version_data(self):
-        handler = self._get_handler()
-        result = handler._header_version()
-        expected = {"HeaderVersion": {"@ns": "sh", "@value": "1.0"}}
-        self.assertEqual(result, expected)
+    @classmethod
+    def _setup_records(cls):
+        cls.bh_tmpl = cls.env.ref("base_gs1.edi_exchange_template_business_header")
+        vals = {
+            "backend_id": cls.backend.id,
+            "name": "Template output 1",
+            "direction": "output",
+            "code": "test_type_out1",
+            "exchange_file_ext": "txt",
+            "exchange_filename_pattern": "{record.ref}-{type.code}-{dt}",
+        }
+        cls.exc_type = cls.env["edi.exchange.type"].create(vals)
+        cls.related_record = cls.env.ref("base.partner_demo")
+        vals = {
+            # Does not really matter which record we bind the exchange to
+            "model": cls.related_record._name,
+            "res_id": cls.related_record.id,
+            "type_id": cls.exc_type.id,
+        }
+        cls.exc_record = cls.backend.create_record("test_type_out1", vals)
 
-    def _expected_contact(self, key, record):
-        ctype = "Buyer" if key == "Sender" else "Seller"
-        return {
-            key: {
-                "@ns": "sh",
-                "Identifier": {"@ns": "sh", "@attrs": {"Authority": "GS1"}},
-                "ContactInformation": {
-                    "@ns": "sh",
-                    "Contact": {"@ns": "sh", "@value": record.name},
-                    "EmailAddress": {"@ns": "sh", "@value": record.email},
-                    "TelephoneNumber": {"@ns": "sh", "@value": record.phone},
-                    "ContactTypeIdentifier": {"@ns": "sh", "@value": ctype},
-                },
+    def test_template_render_values(self):
+        values = self.bh_tmpl._get_render_values(self.exc_record)
+        self.assertEqual(
+            values,
+            {
+                "backend": self.backend,
+                "date_to_string": self.bh_tmpl._date_to_string,
+                "exchange_record": self.exc_record,
+                "instance_identifier": self.related_record.name,
+                "record": self.related_record,
+                "template": self.bh_tmpl,
+                "utc_now": self.bh_tmpl._utc_now,
             },
-        }
-
-    def test_sender_data(self):
-        handler = self._get_handler()
-        result = handler._sender()
-        expected = self._expected_contact("Sender", self.lsc_partner)
-        self.assertEqual(result, expected)
-
-    def test_receiver_data(self):
-        handler = self._get_handler()
-        result = handler._receiver()
-        expected = self._expected_contact("Receiver", self.lsp_partner)
-        self.assertEqual(result, expected)
-
-    @freeze_time("2020-07-08 07:30:00")
-    def test_document_id_data(self):
-        handler = self._get_handler()
-        result = handler._document_identification()
-        expected = {
-            "DocumentIdentification": {
-                "@ns": "sh",
-                "Standard": {"@ns": "sh", "@value": "GS1"},
-                "TypeVersion": {"@ns": "sh", "@value": "3.4"},
-                "InstanceIdentifier": {"@ns": "sh", "@value": "TEST-DOC-XYZ"},
-                "Type": {"@ns": "sh", "@value": ""},
-                "MultipleType": {"@ns": "sh", "@value": "false"},
-                "CreationDateAndTime": {"@ns": "sh", "@value": "2020-07-08T07:30:00"},
-            }
-        }
-        self.assertEqual(result, expected)
+        )
 
     @freeze_time("2020-07-08 07:30:00")
     def test_xml(self):
-        handler = self._get_handler()
-        result = handler.generate_xml()
-        # namespace is include in main document root
-        # but we need it to parse the result which would fail w/out this
-        result = result.replace(
-            "<sh:StandardBusinessDocumentHeader>",
-            "<sh:StandardBusinessDocumentHeader xmlns:sh='{}'>".format(
-                handler._xmlns["sh"]
-            ),
+        output = self.backend.generate_output(
+            self.exc_record,
+            template_code="gs1.business_header",
+            sender=self.lsc_partner,
+            receiver=self.lsp_partner,
         )
         expected = """
             <sh:StandardBusinessDocumentHeader xmlns:sh="{ns}">
@@ -116,12 +90,13 @@ class BusinessHeaderTestCase(BaseXMLTestCase):
                 </sh:DocumentIdentification>
             </sh:StandardBusinessDocumentHeader>
         """.format(
-            ns=handler._xmlns["sh"],
+            ns=BH_NS,
             sender=self.lsc_partner,
             receiver=self.lsp_partner,
-            identifier="TEST-DOC-XYZ",
+            identifier=self.related_record.name,
             date="2020-07-08T07:30:00",
         )
-        self.assertXmlEquivalentOutputs(self.flatten(result), self.flatten(expected))
+        self.assertXmlEquivalentOutputs(self.flatten(output), self.flatten(expected))
         # when valid returns none
-        self.assertFalse(handler.validate_schema(result))
+        # TODO
+        # self.assertFalse(handler.validate_schema(result))

@@ -2,10 +2,10 @@
 # @author: Simone Orsi <simahawk@gmail.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from .common import BaseXMLTestCase
+from .common import BaseTestCase
 
 
-class ApplicationReceiptTestCase(BaseXMLTestCase):
+class ApplicationReceiptTestCase(BaseTestCase):
     def _get_handler(self, usage="gs1.in.ApplicationReceiptAcknowledgement", **kw):
         return self.backend._get_component(work_ctx=dict(), usage=usage, **kw)
 
