@@ -59,9 +59,9 @@ class InboundInstructionTestCaseBase(BaseXMLTestCase, DeliveryMixin):
         #         "name": "Out 3",
         #         "type_id": cls.type_out3.id,
         #         "type": "qweb",
-        #         "key": "base_edi_exchange.test_output3",
+        #         "key": "edi_exchange.test_output3",
         #         "arch": """
-        #         <t t-name="base_edi_exchange.test_output3">
+        #         <t t-name="edi_exchange.test_output3">
         #         {}
         #         </t>
         #     """.format(WH_INBOUND_TMPL),

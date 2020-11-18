@@ -15,7 +15,7 @@
         "stock",
         "purchase_stock",
         "delivery",
-        "base_edi_exchange_output",
+        "edi_exchange_template",
     ],
     "data": [
         "views/stock_picking_view.xml",
