@@ -41,6 +41,11 @@
             <search string="EDI Backend">
                 <field name="name" />
                 <field name="backend_type_id" />
+                <filter
+                    name="group_by_backend_type_id"
+                    string="Backend Type"
+                    context="{'group_by': 'backend_type_id'}"
+                />
             </search>
         </field>
     </record>

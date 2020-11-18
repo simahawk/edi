@@ -44,7 +44,7 @@ class EDIBackendCommonTestCase(SavepointCase):
 
     @classmethod
     def _get_backend(cls):
-        return cls.env.ref("base_edi_exchange.demo_edi_backend")
+        return cls.env.ref("edi_exchange.demo_edi_backend")
 
     @classmethod
     def _create_exchange_type(cls, **kw):

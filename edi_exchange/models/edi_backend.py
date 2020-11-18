@@ -13,6 +13,7 @@ from odoo.addons.queue_job.job import job
 _logger = logging.getLogger(__name__)
 
 
+# TODO: move the base model to base_edi?
 class EDIBackend(models.Model):
     """Generic backend to control EDI exchanges.
 
@@ -110,11 +111,19 @@ class EDIBackend(models.Model):
     def _create_record_prepare_values(self, type_code, values):
         res = values.copy()  # do not pollute original dict
         export_type = self.env["edi.exchange.type"].search(
-            [("code", "=", type_code), ("backend_id", "=", self.id)], limit=1
+            self._get_exchange_type_domain(type_code), limit=1
         )
         export_type.ensure_one()
         res["type_id"] = export_type.id
         return res
+
+    def _get_exchange_type_domain(self, code):
+        return [
+            ("code", "=", code),
+            "|",
+            ("backend_type_id", "=", self.backend_type_id.id),
+            ("backend_id", "=", self.id),
+        ]
 
     def _get_component(self, work_ctx=None, **kw):
         work_ctx = work_ctx or {}
@@ -271,7 +280,7 @@ class EDIBackend(models.Model):
     def _exchange_notify_record(self, record, message, level="info"):
         """Attach exported file to current PO."""
         record.record_id.message_post_with_view(
-            "base_edi_exchange.message_edi_exchange_link",
+            "edi_exchange.message_edi_exchange_link",
             values={
                 "backend": self,
                 "exchange_record": record,
