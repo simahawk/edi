@@ -15,7 +15,7 @@
         "component",
         "storage_backend",
         "base_jsonify",
-        "base_edi_exchange_output",
+        "edi_exchange_template",
     ],
     "external_dependencies": {"python": ["xmlschema"]},
     "data": [
