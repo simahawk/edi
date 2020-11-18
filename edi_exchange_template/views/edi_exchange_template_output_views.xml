@@ -90,7 +90,7 @@
     </record>
     <menuitem
         id="menu_edi_exchange_template_output"
-        parent="base_edi_exchange.menu_edi_exchange"
+        parent="edi_exchange.menu_edi_exchange"
         sequence="10"
         action="act_open_edi_exchange_template_output_view"
     />

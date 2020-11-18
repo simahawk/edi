@@ -10,7 +10,7 @@
     "license": "AGPL-3",
     "author": "ACSONE,Odoo Community Association (OCA)",
     "depends": [
-        "base_edi_exchange",
+        "edi_exchange",
         # "component",
         # "component_event",
         # "queue_job",

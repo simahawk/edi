@@ -4,7 +4,7 @@ import base64
 
 from lxml import etree
 
-from odoo.addons.base_edi_exchange.tests.common import EDIBackendCommonTestCase
+from odoo.addons.edi_exchange.tests.common import EDIBackendCommonTestCase
 
 
 class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
@@ -26,9 +26,9 @@ class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
         qweb_tmpl = cls.env["ir.ui.view"].create(
             {
                 "type": "qweb",
-                "key": "base_edi_exchange.test_output1",
+                "key": "edi_exchange.test_output1",
                 "arch": """
-            <t t-name="base_edi_exchange.test_output1">
+            <t t-name="edi_exchange.test_output1">
                 <t t-esc="record.ref" /> - <t t-esc="record.name" />
             </t>
             """,
@@ -59,10 +59,10 @@ class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
         qweb_tmpl = cls.env["ir.ui.view"].create(
             {
                 "type": "qweb",
-                "key": "base_edi_exchange.test_output2",
+                "key": "edi_exchange.test_output2",
                 "arch": """
-            <t t-name="base_edi_exchange.test_output2">
-                <t t-name="base_edi_exchange.test_output2">
+            <t t-name="edi_exchange.test_output2">
+                <t t-name="edi_exchange.test_output2">
                     <Record t-att-ref="record.ref">
                         <Name t-esc="record.name" />
                         <Custom t-att-bit="custom_bit" t-esc="baz"/>
