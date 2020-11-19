@@ -16,10 +16,10 @@ class EDIExchangeOutputTemplate(models.Model):
     """
 
     _name = "edi.exchange.template.output"
-    _inhetit = "edi.exchange.template.mixin"
+    _inherit = "edi.exchange.template.mixin"
     _description = "EDI Exchange Output Template"
 
-    output_type = fields.Char(default="xml")
+    output_type = fields.Char(required=True)
     template_id = fields.Many2one(
         string="Qweb Template",
         comodel_name="ir.ui.view",

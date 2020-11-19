@@ -40,6 +40,7 @@ class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
                 "name": "Out 1",
                 "type_id": cls.type_out1.id,
                 "template_id": qweb_tmpl.id,
+                "output_type": "txt",
             }
         )
         vals = {
@@ -78,6 +79,7 @@ class TestEDIBackendOutputBase(EDIBackendCommonTestCase):
                 "name": "Out 2",
                 "type_id": cls.type_out2.id,
                 "template_id": qweb_tmpl.id,
+                "output_type": "xml",
                 "code_snippet": """
 foo = "custom_var"
 baz = 2
