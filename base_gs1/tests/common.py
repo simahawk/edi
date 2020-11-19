@@ -21,6 +21,7 @@ class BaseTestCase(SavepointCase, xmlunittest.XmlTestMixin):
         # Logistic Services Client (LSC)
         cls.lsc_partner = cls.env.ref("base.main_partner")
         cls.backend.lsp_partner_id = cls.lsp_partner
+        cls.backend.lsc_partner_id = cls.lsc_partner
 
         # set fake GLN codes
         cls.lsp_partner.gln_code = "1".zfill(13)

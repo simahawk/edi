@@ -20,6 +20,7 @@ class BusinessHeaderTestCase(BaseTestCase):
         cls.bh_tmpl = cls.env.ref("base_gs1.edi_exchange_template_business_header")
         vals = {
             "backend_id": cls.backend.id,
+            "backend_type_id": cls.backend.backend_type_id.id,
             "name": "Template output 1",
             "direction": "output",
             "code": "test_type_out1",
@@ -48,6 +49,7 @@ class BusinessHeaderTestCase(BaseTestCase):
                 "record": self.related_record,
                 "template": self.bh_tmpl,
                 "utc_now": self.bh_tmpl._utc_now,
+                "render_edi_template": self.bh_tmpl._render_template,
             },
         )
 
@@ -55,7 +57,7 @@ class BusinessHeaderTestCase(BaseTestCase):
     def test_xml(self):
         output = self.backend.generate_output(
             self.exc_record,
-            template_code="gs1.business_header",
+            template_code="gs1.BusinessHeader",
             sender=self.lsc_partner,
             receiver=self.lsp_partner,
         )

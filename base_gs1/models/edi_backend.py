@@ -6,7 +6,7 @@ from odoo import fields, models
 
 
 class EDIBackend(models.Model):
-    _inherits = "edi.backend"
+    _inherit = "edi.backend"
 
     # TODO: find another way to configure this w/out polluting edi backend
     # TODO: add to view
