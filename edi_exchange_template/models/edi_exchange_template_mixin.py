@@ -9,6 +9,7 @@ import dateutil
 import pytz
 
 from odoo import fields, models
+from odoo.tools import DotDict
 from odoo.tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ class EDIExchangeTemplateMixin(models.AbstractModel):
             "uid": self.env.uid,
             "user": self.env.user,
             "template": self,
+            "DotDict": DotDict,
         }
 
     def _evaluate_code_snippet(self, **render_values):

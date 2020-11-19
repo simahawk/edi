@@ -31,22 +31,24 @@ class EDIExchangeOutputTemplate(models.Model):
     )
     template_key = fields.Char(related="template_id.key")
 
-    def generate_output(self, record, **kw):
+    def generate_output(self, exchange_record, **kw):
         tmpl = self.template_id
         # TODO: validate render values (eg: sender/receiver are mandatory for BH)
-        values = self._get_render_values(record, **kw)
+        values = self._get_render_values(exchange_record, **kw)
         output = tmpl.render(values)
         return self._post_process_output(output)
 
-    def _get_render_values(self, record, **kw):
+    def _get_render_values(self, exchange_record, **kw):
         values = {
-            "exchange_record": record,
-            "record": record.record_id,
-            "backend": record.backend_id,
+            "exchange_record": exchange_record,
+            "record": exchange_record.record_id,
+            "backend": exchange_record.backend_id,
             "template": self,
             "utc_now": self._utc_now,
             "date_to_string": self._date_to_string,
             "render_edi_template": self._render_template,
+            "get_info_provider": self._get_info_provider,
+            "info": {},
         }
         if self.code_snippet:
             values.update(self._evaluate_code_snippet(**values))
@@ -80,3 +82,13 @@ class EDIExchangeOutputTemplate(models.Model):
             parent.extend(nswrapper.getchildren())
             parent.remove(nswrapper)
         return etree.tostring(root)
+
+    def _get_info_provider(self, exchange_record, work_ctx=None, usage=None, **kw):
+        default_work_ctx = dict(
+            exchange_record=exchange_record, record=exchange_record.record_id,
+        )
+        default_work_ctx.update(work_ctx or {})
+        provider = exchange_record.backend_id._get_component(
+            safe=True, work_ctx=default_work_ctx, usage=usage or self.code, **kw
+        )
+        return provider

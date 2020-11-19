@@ -96,6 +96,7 @@ result = {"custom_bit": foo, "baz": baz}
 
 
 # TODO: add more unit tests
+# TODO: test generic component lookup for output template
 class TestEDIBackendOutput(TestEDIBackendOutputBase):
     def test_get_template(self):
         self.assertEqual(self.backend._get_template(self.record1), self.tmpl_out1)

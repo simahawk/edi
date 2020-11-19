@@ -11,7 +11,7 @@
     "author": "ACSONE,Odoo Community Association (OCA)",
     "depends": [
         "edi_exchange",
-        # "component",
+        "component",
         # "component_event",
         # "queue_job",
     ],
