@@ -46,11 +46,16 @@ class EDIExchangeOutputTemplate(models.Model):
             "template": self,
             "utc_now": self._utc_now,
             "date_to_string": self._date_to_string,
+            "render_edi_template": self._render_template,
         }
         if self.code_snippet:
             values.update(self._evaluate_code_snippet(**values))
         values.update(kw)
         return values
+
+    def _render_template(self, record, code, **kw):
+        tmpl = self.get_template_for_record(record, code=code)
+        return tmpl.generate_output(record, **kw)
 
     def _post_process_output(self, output):
         if self.output_type == "xml":
