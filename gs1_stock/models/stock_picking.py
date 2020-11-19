@@ -9,6 +9,9 @@ from odoo import api, models
 _logger = logging.getLogger(__name__)
 
 
+# TODO: inherit from exchange consumer
+
+
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
@@ -36,7 +39,6 @@ class StockPicking(models.Model):
 
         if "edi_exchange_send" in self.env.context:
             send = self.env.context.get("edi_exchange_send")
-
         if send:
             edi_backend.exchange_send(exchange_record)
         return exchange_record

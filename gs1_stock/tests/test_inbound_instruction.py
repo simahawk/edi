@@ -82,24 +82,52 @@ class InboundInstructionTestCase(InboundInstructionTestCaseBase):
     def setUpClass(cls):
         super().setUpClass()
         cls._setup_order()
+        cls.exc_type = cls.env.ref("gs1_stock.edi_exchange_type_inbound_instruction")
+        cls.exc_tmpl = cls.env.ref(
+            "gs1_stock.edi_exchange_template_inbound_instruction"
+        )
+        vals = {
+            "model": cls.delivery._name,
+            "res_id": cls.delivery.id,
+            "type_id": cls.exc_type.id,
+        }
+        cls.record = cls.backend.create_record(cls.exc_type.code, vals)
 
     def test_get_template(self):
-        exc_type = self.env.ref("gs1_stock.edi_exchange_type_inbound_instruction")
-        exc_tmpl = self.env.ref("gs1_stock.edi_exchange_template_inbound_instruction")
-        vals = {
-            "model": self.delivery._name,
-            "res_id": self.delivery.id,
-            "type_id": exc_type.id,
-        }
-        record = self.backend.create_record(exc_type.code, vals)
-        template = self.backend._get_template(record)
-        self.assertEqual(template, exc_tmpl)
+        template = self.backend._get_template(self.record)
+        self.assertEqual(template, self.exc_tmpl)
         self.assertEqual(
             template.template_id.key, "gs1_stock.edi_exchange_inbound_instruction"
         )
 
+    def test_get_info(self):
+        values = self.exc_tmpl._get_render_values(self.record)
+        expected = [
+            ("sender", self.backend.lsc_partner_id),
+            ("receiver", self.backend.lsp_partner_id),
+            ("ls_buyer", self.backend.lsc_partner_id),
+            ("ls_seller", self.backend.lsp_partner_id),
+            ("buyer", self.backend.lsc_partner_id),
+            ("seller", self.purchase.partner_id),
+            (
+                "shipper",
+                {
+                    "gln_code": "0000000000000",
+                    "name": "NO_CARRIER_SPECIFIED",
+                    "ref": None,
+                },
+            ),
+        ]
+        for k, v in expected:
+            self.assertEqual(values[k], v)
+        # info = values["info"]
+        # expected_info = None
+        # TODO
+        # import pdb;pdb.set_trace()
+        pass
+
     @freeze_time("2020-07-09 10:30:00")
-    def test_business_header_data(self):
+    def test_xml(self):
         record = self.delivery.with_context(
             edi_exchange_send=False
         ).action_send_wh_inbound_instruction()

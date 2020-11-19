@@ -12,39 +12,50 @@
             <t
                 t-raw="render_edi_template(exchange_record, 'gs1.BusinessHeader', sender=sender, receiver=receiver)"
             />
+            <t t-set="purchase_order" t-value="record.purchase_id" />
             <warehousingInboundInstruction>
                 <creationDateTime>2020-07-09T10:30:00</creationDateTime>
                 <documentStatusCode>ORIGINAL</documentStatusCode>
                 <documentActionCode>ADD</documentActionCode>
                 <warehousingInboundInstructionIdentification>
-                    <entityIdentification>WH/IN/00014</entityIdentification>
+                    <entityIdentification
+                        t-esc="record.name"
+                    >WH/IN/00014</entityIdentification>
                 </warehousingInboundInstructionIdentification>
                 <logisticServicesBuyer>
-                    <gln>0000000000002</gln>
+                    <gln t-esc="ls_buyer.gln_code" />
                 </logisticServicesBuyer>
                 <logisticServicesSeller>
-                    <gln>0000000000001</gln>
+                    <gln t-esc="ls_seller.gln_code" />
                 </logisticServicesSeller>
                 <warehousingInboundInstructionShipment>
                     <shipmentIdentification>
                         <additionalShipmentIdentification
                             additionalShipmentIdentificationTypeCode="GOODS_RECEIVER_ASSIGNED"
+                            t-esc="record.name"
                         >WH/IN/00014</additionalShipmentIdentification>
                     </shipmentIdentification>
+                    <!-- TODO: get it from info.warehousingInboundInstructionShipment.shipper -->
                     <shipper>
-                        <gln>0000000000044</gln>
+                        <gln t-esc="shipper.gln_code">0000000000044</gln>
                         <additionalPartyIdentification
                             additionalPartyIdentificationTypeCode="BUYER_ASSIGNED_IDENTIFIER_FOR_A_PARTY"
+                            t-esc="shipper.name"
                         >CARRIER#1</additionalPartyIdentification>
                     </shipper>
                     <receiver>
-                        <gln>0000000000001</gln>
+                        <gln t-esc="receiver.gln_code">0000000000001</gln>
                     </receiver>
-                    <packageTotal>
-                        <packageTypeCode>AF</packageTypeCode>
-                        <totalPackageQuantity>2</totalPackageQuantity>
+                    <packageTotal t-if="info.packageTotal">
+                        <packageTypeCode
+                            t-esc="info.packageTotal.packageTypeCode"
+                        >AF</packageTypeCode>
+                        <totalPackageQuantity
+                            t-esc="info.packageTotal.totalPackageQuantity"
+                        >2</totalPackageQuantity>
                         <totalGrossWeight
-                            measurementUnitCode="KGM"
+                            t-att="info.packageTotal.totalGrossWeight.attrs"
+                            t-esc="info.packageTotal.totalGrossWeight.value"
                         >6.0</totalGrossWeight>
                     </packageTotal>
                     <warehousingReceiptTypeCode

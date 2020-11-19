@@ -2,11 +2,10 @@
 # @author: Simone Orsi <simahawk@gmail.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from collections import OrderedDict
-
 # from lxml import etree
 # from odoo import tools
 from odoo import _, exceptions
+from odoo.tools import DotDict
 
 from odoo.addons.component.core import Component
 
@@ -34,47 +33,36 @@ class GS1InboundInstructionMessage(Component):
 
     _name = "gs1.output.inboundinstruction"
     _inherit = [
-        "gs1.output.mixin",
+        "edi.output.mixin",
     ]
     _usage = "gs1.warehousingInboundInstructionMessage"
-    _xsd_schema_module = "gs1_stock"
-    _xsd_schema_path = "static/schemas/gs1/ecom/WarehousingInboundInstruction.xsd"
+    # _xsd_schema_module = "gs1_stock"
+    # _xsd_schema_path = "static/schemas/gs1/ecom/WarehousingInboundInstruction.xsd"
 
     _work_context_validate_attrs = [
-        # TODO: these are required for business header.
-        # Find a way to not repeat them.
         "record",
-        "sender",  # sh:Sender tag
-        "receiver",  # sh:Receiver tag
-        "instance_identifier",  # sh:InstanceIdentifier tag
+        "sender",
+        "receiver",
         # instruction specific
         "shipper",  # shipper tag
         "ls_buyer",  # logisticServicesBuyer tag
         "ls_seller",  # logisticServicesSeller tag
     ]
 
-    def _business_header(self):
-        comp = self.work.component(usage="gs1.StandardBusinessDocumentHeader")
-        return comp.generate_data()
+    def generate_info(self):
+        return DotDict(self._inbound_instruction())
 
     def _inbound_instruction(self):
-        data = OrderedDict(
-            {
-                "creationDateTime": self._utc_now(),
-                # status code can stay always as it is if we don't send around copies
-                "documentStatusCode": "ORIGINAL",
-                "documentActionCode": self._document_action_code(),
-                "warehousingInboundInstructionIdentification": OrderedDict(
-                    {"entityIdentification": self._entity_identification()}
-                ),
-                "logisticServicesBuyer": self._logistic_service_buyer(),
-                "logisticServicesSeller": self._logistic_service_seller(),
-                # fmt: off
-                "warehousingInboundInstructionShipment":
-                    self._inbound_instruction_shipment(),
-                # fmt: on
-            }
-        )
+        data = {
+            "creationDateTime": self._utc_now(),
+            # status code can stay always as it is if we don't send around copies
+            "documentStatusCode": "ORIGINAL",
+            "documentActionCode": self._document_action_code(),
+            # fmt: off
+            "warehousingInboundInstructionShipment":
+                self._inbound_instruction_shipment(),
+            # fmt: on
+        }
         return {"warehousingInboundInstruction": data}
 
     @property
@@ -92,59 +80,35 @@ class GS1InboundInstructionMessage(Component):
     def _entity_identification(self):
         return self.record.name
 
-    def _get_buyer_record(self):
-        return self.work.ls_buyer
-
-    def _get_seller_record(self):
-        return self.work.ls_seller
-
-    def _logistic_service_buyer(self):
-        record = self._get_buyer_record()
-        return {
-            "gln": record.gln_code,
-        }
-
-    def _logistic_service_seller(self):
-        record = self._get_seller_record()
-        return {
-            "gln": record.gln_code,
-        }
-
     def _inbound_instruction_shipment(self):
-        data = [
-            {"shipmentIdentification": self._shipment_identification()},
-        ]
+        data = {"shipmentIdentification": self._shipment_identification()}
         for key, handler in self._inbound_instruction_shipment_elements().items():
             value = handler()
             # Return empty dict or None in you handler to skip an element
             if value:
-                data.append({key: value})
-        data.extend(self._inbound_instruction_shipment_items())
+                data[key] = value
         return data
 
     def _inbound_instruction_shipment_elements(self):
-        return OrderedDict(
-            {
-                # Watch out: order is important for XSD validation!
-                "shipper": self._shipper,
-                "receiver": self._receiver,
-                "logisticUnit": self._logistic_unit,
-                "packageTotal": self._package_total,
-                "warehousingReceiptTypeCode": self._receipt_type_code,
-                "plannedReceipt": self._planned_receipt,
-            }
-        )
+        return {
+            "shipper": self._shipper,
+            "receiver": self._receiver,
+            "logisticUnit": self._logistic_unit,
+            "packageTotal": self._package_total,
+            "warehousingReceiptTypeCode": self._receipt_type_code,
+            "plannedReceipt": self._planned_receipt,
+        }
 
     def _shipment_identification(self):
         return {
             "additionalShipmentIdentification": {
-                "@attrs": {
+                "attrs": {
                     # fmt: off
                     "additionalShipmentIdentificationTypeCode":
                         "GOODS_RECEIVER_ASSIGNED"
                     # fmt: on
                 },
-                "@value": self.record.name,
+                "value": self.record.name,
             }
         }
 
@@ -170,13 +134,13 @@ class GS1InboundInstructionMessage(Component):
             data["gln"] = record.gln_code
         if record.ref:
             data["additionalPartyIdentification"] = {
-                "@attrs": {
+                "attrs": {
                     # fmt: off
                     "additionalPartyIdentificationTypeCode":
                         "BUYER_ASSIGNED_IDENTIFIER_FOR_A_PARTY"
                     # fmt: on
                 },
-                "@value": record.ref,
+                "value": record.ref,
             }
         return data
 
@@ -200,7 +164,7 @@ class GS1InboundInstructionMessage(Component):
         }
 
     def _package_total(self):
-        return OrderedDict(
+        return DotDict(
             {
                 # TODO: would be nice to have mapping based on product packaging
                 # but as in some case you simply use the same package types
@@ -212,8 +176,8 @@ class GS1InboundInstructionMessage(Component):
                 "packageTypeCode": "AF",
                 "totalPackageQuantity": "2",
                 "totalGrossWeight": {
-                    "@value": self.record.weight,
-                    "@attrs": {"measurementUnitCode": "KGM"},
+                    "value": self.record.weight,
+                    "attrs": {"measurementUnitCode": "KGM"},
                 },
             }
         )
@@ -262,7 +226,7 @@ class GS1InboundInstructionMessage(Component):
         # TODO: get it from line uom
         uom_code = "KGM"
         # Watch out: order is important for XSD validation!
-        data = OrderedDict(
+        data = DotDict(
             {
                 "lineItemNumber": i,
                 "transactionalTradeItem": self._shipment_item_trade_item(item),
@@ -272,8 +236,8 @@ class GS1InboundInstructionMessage(Component):
         if avp_list:
             data["avpList"] = avp_list
         data["plannedReceiptQuantity"] = {
-            "@value": qty,
-            "@attrs": {"measurementUnitCode": uom_code},
+            "value": qty,
+            "attrs": {"measurementUnitCode": uom_code},
         }
         return data
 
@@ -306,32 +270,7 @@ class GS1InboundInstructionMessage(Component):
         """Generate `eComStringAttributeValuePairList` element."""
         return {
             "eComStringAttributeValuePairList": {
-                "@attrs": {"attributeName": attr_name},
-                "@value": value,
+                "attrs": {"attributeName": attr_name},
+                "value": value,
             }
         }
-
-    def _get_root_el(self):
-        # TODO: is `xsi:schemaLocation` needed?
-        root_el = {
-            "warehousingInboundInstructionMessage": {
-                "@ns": "warehousing_inbound_instruction",
-                "@attrs": {
-                    # fmt: off
-                    "xmlns:warehousing_inbound_instruction":
-                        "urn:gs1:ecom:warehousing_inbound_instruction:xsd:3",
-                    # fmt: on
-                    "xmlns:sh": self._xmlns["sh"],
-                    "xmlns:xsi": self._xmlns["xsi"],
-                },
-            }
-        }
-        return root_el
-
-    def generate_data(self):
-        root = self._get_root_el()
-        doc = {}
-        doc.update(self._business_header())
-        doc.update(self._inbound_instruction())
-        root["warehousingInboundInstructionMessage"].update(doc)
-        return root

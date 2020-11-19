@@ -12,7 +12,29 @@
         <field name="code_snippet">
 sender = backend.lsc_partner_id
 receiver = backend.lsp_partner_id
-result = {"sender": sender, "receiver": receiver}
+logistic_service_seller = receiver
+logistic_service_buyer = sender
+# FIXME: this is probably wrong or not always true
+buyer = sender
+seller = record.purchase_id.partner_id
+# TODO: get a default carrier somehow?
+shipper = DotDict(dict(name="NO_CARRIER_SPECIFIED", gln_code="0" * 13, ref=None))
+
+_result = {
+    "sender": sender,
+    "receiver": receiver,
+    "ls_seller": logistic_service_seller,
+    "ls_buyer": logistic_service_buyer,
+    "buyer": buyer,
+    "seller": seller,
+    "shipper": shipper,
+}
+
+provider = get_info_provider(exchange_record, work_ctx=_result)
+if provider:
+    _result["info"] = provider.generate_info()
+
+result = _result
         </field>
     </record>
 </odoo>
