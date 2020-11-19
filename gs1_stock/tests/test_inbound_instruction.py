@@ -10,7 +10,7 @@ from freezegun import freeze_time
 from odoo import fields
 from odoo.tests.common import Form
 
-from odoo.addons.base_gs1.tests.common import BaseXMLTestCase
+from odoo.addons.base_gs1.tests.common import BaseTestCase
 
 
 class DeliveryMixin(object):
@@ -42,7 +42,7 @@ class DeliveryMixin(object):
         return po.save()
 
 
-class InboundInstructionTestCaseBase(BaseXMLTestCase, DeliveryMixin):
+class InboundInstructionTestCaseBase(BaseTestCase, DeliveryMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

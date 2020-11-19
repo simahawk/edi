@@ -5,11 +5,14 @@
         model="edi.exchange.template.output"
     >
         <field name="name">EDI Exchange - GS1 Inbound Instruction</field>
+        <field name="code">gs1.warehousingInboundInstructionMessage</field>
+        <field name="output_type">xml</field>
         <field name="type_id" ref="edi_exchange_type_inbound_instruction" />
         <field name="template_id" ref="edi_exchange_inbound_instruction" />
         <field name="code_snippet">
 sender = backend.lsc_partner_id
 receiver = backend.lsp_partner_id
+result = {"sender": sender, "receiver": receiver}
         </field>
     </record>
 </odoo>
