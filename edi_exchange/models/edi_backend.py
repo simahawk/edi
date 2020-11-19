@@ -115,6 +115,7 @@ class EDIBackend(models.Model):
         )
         export_type.ensure_one()
         res["type_id"] = export_type.id
+        res["backend_id"] = self.id
         return res
 
     def _get_exchange_type_domain(self, code):
@@ -144,7 +145,7 @@ class EDIBackend(models.Model):
         if b64:
             getter = self.storage_id._get_b64_data
         try:
-            # FIXME: support match via pattern (eg: filename-prefix-*)
+            # TODO: support match via pattern (eg: filename-prefix-*)
             # otherwise is impossible to retrieve input files and acks
             # (the date will never match)
             return getter(path.as_posix())

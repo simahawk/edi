@@ -52,6 +52,7 @@ class EDIBackendCommonTestCase(SavepointCase):
         vals = {
             "name": "Test CSV exchange",
             "backend_id": cls.backend.id,
+            "backend_type_id": cls.backend.backend_type_id.id,
         }
         vals.update(kw)
         return model.create(vals)

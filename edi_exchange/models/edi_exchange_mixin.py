@@ -29,9 +29,7 @@ class EDIExchangeMixin(models.AbstractModel):
         auto_join=True,
     )
     direction = fields.Selection(related="type_id.direction",)
-    backend_id = fields.Many2one(
-        comodel_name="edi.backend", related="type_id.backend_id",
-    )
+    backend_id = fields.Many2one(comodel_name="edi.backend", required=True)
     model = fields.Char(index=True, required=True, readonly=True)
     res_id = fields.Many2oneReference(
         string="Record ID",
@@ -129,6 +127,20 @@ class EDIExchangeMixin(models.AbstractModel):
                 raise exceptions.ValidationError(
                     _("Exchange state must respect direction!")
                 )
+
+    @api.constrains("backend_id", "type_id")
+    def _constrain_backend(self):
+        for rec in self:
+            if rec.type_id.backend_id:
+                if rec.type_id.backend_id != rec.backend_id:
+                    raise exceptions.ValidationError(
+                        _("Backend must match with exchange type's backend!")
+                    )
+            else:
+                if rec.type_id.backend_type_id != rec.backend_id.backend_type_id:
+                    raise exceptions.ValidationError(
+                        _("Backend type must match with exchange type's backend type!")
+                    )
 
     def name_get(self):
         result = []
