@@ -64,6 +64,8 @@ class EDIExchangeOutputTemplate(models.Model):
         return output
 
     def _cleanup_nswrapper(self, xml_content):
+        if not (xml_content and xml_content.strip()):
+            return xml_content
         root = etree.XML(xml_content)
         # deeper elements come after, keep the root element at the end (if any)
         for nswrapper in reversed(root.xpath("//nswrapper")):
