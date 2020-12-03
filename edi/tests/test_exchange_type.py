@@ -25,3 +25,10 @@ class EDIExchangeTypeTestCase(EDIBackendCommonTestCase):
             }
         })
         # fmt:on
+        vals = {
+            "model": self.partner._name,
+            "res_id": self.partner.id,
+        }
+        record = self.backend.create_record("test_csv_output", vals)
+        conf = self.exchange_type_out._component_conf_for(record, "foo")
+        self.assertEqual(conf, "this")

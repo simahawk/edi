@@ -38,12 +38,13 @@ class EDIBackend(models.Model):
         ondelete="restrict",
     )
 
-    def _get_component(self, exchange_record, key):
+    def _get_component(self, exchange_record, key, work_ctx=None):
         # TODO: maybe lookup for an `exchange_record.model` specific component 1st
         candidates = self._get_component_usage_candidates(exchange_record, key)
         work_ctx = {"exchange_record": exchange_record}
-        # Inject work context from advanced settings
-        record_conf = self._get_component_conf_for_record(exchange_record, key)
+        work_ctx.update(work_ctx or {})
+        # Inject work context from advanced settings if available
+        record_conf = exchange_record.type_id._component_conf_for(exchange_record, key)
         work_ctx.update(record_conf.get("work_ctx", {}))
         match_attrs = self._component_match_attrs(exchange_record, key)
         return self._find_component(
@@ -113,16 +114,13 @@ class EDIBackend(models.Model):
             key,
         ])
         # fmt:on
-        record_conf = self._get_component_conf_for_record(exchange_record, key)
+        exc_type = exchange_record.type_id
+        record_conf = exc_type._component_conf_for(exchange_record, key)
         candidates = [record_conf["usage"]] if record_conf else []
         candidates += [
             base_usage,
         ]
         return candidates
-
-    def _get_component_conf_for_record(self, exchange_record, key):
-        adv_settings = exchange_record.type_id.advanced_settings
-        return adv_settings.get("components", {}).get(key, {})
 
     @property
     def exchange_record_model(self):
